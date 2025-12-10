@@ -42,6 +42,7 @@ Init() {
     Config.Timings := {}
     Config.Timings.clickDelay := 50       ; espera antes/después de clicks
     Config.Timings.afterClick := 200      ; espera tras ejecutar Alt+Click
+    Config.Timings.cooldown := 5000       ; cooldown de 5 segundos entre clicks
 
     ; -- Colores objetivo (0xRRGGBB)
     Config.Colors := { white: 0xFFFFFF }  ; Blanco puro
@@ -50,9 +51,12 @@ Init() {
     Config.GameWindowExecutables := ["BPSR_STEAM.exe", "BPSR_EPIC.exe", "BPSR.exe", "BPSR"]
 
     ; -- Coordenadas base (en 1920x1080). Todas se escalarán al iniciar.
-    Config.PointsBase := Map()
-    Config.PointsBase["target"] := { x: 1425, y: 630 }   ; Target F9: detectar blanco y hacer Alt+Click
-    Config.PointsBase["target2"] := { x: 1425, y: 560 }  ; Target F8: detectar blanco y hacer Alt+Click
+    ; Ahora usamos áreas rectangulares en lugar de puntos individuales
+    Config.AreasBase := Map()
+    ; Target2 F8 (Focused): área rectangular
+    Config.AreasBase["target2"] := { x1: 1411, y1: 555, x2: 1440, y2: 586 }
+    ; Target F9 (Normal): área rectangular
+    Config.AreasBase["target"] := { x1: 1411, y1: 628, x2: 1440, y2: 655 }
 
     ; -- Flag para habilitar/deshabilitar logs (ANTES de DetectGameWindow)
     Config.LoggingEnabled := true
@@ -66,12 +70,14 @@ Init() {
     Config.Scale := { x: (Config.GameWindow.w + 0.0) / Config.Base.w
         , y: (Config.GameWindow.h + 0.0) / Config.Base.h }
 
-    ; -- Precalcular coordenadas escaladas relativas a la ventana del juego
-    Config.Points := Map()
-    for key, pt in Config.PointsBase {
-        sx := Round(pt.x * Config.Scale.x) + Config.GameWindow.x
-        sy := Round(pt.y * Config.Scale.y) + Config.GameWindow.y
-        Config.Points[key] := { x: sx, y: sy }
+    ; -- Precalcular áreas escaladas relativas a la ventana del juego
+    Config.Areas := Map()
+    for key, area in Config.AreasBase {
+        sx1 := Round(area.x1 * Config.Scale.x) + Config.GameWindow.x
+        sy1 := Round(area.y1 * Config.Scale.y) + Config.GameWindow.y
+        sx2 := Round(area.x2 * Config.Scale.x) + Config.GameWindow.x
+        sy2 := Round(area.y2 * Config.Scale.y) + Config.GameWindow.y
+        Config.Areas[key] := { x1: sx1, y1: sy1, x2: sx2, y2: sy2 }
     }
 
     ; -- Estado en memoria
@@ -79,6 +85,9 @@ Init() {
     State.toggle2 := false         ; Automatización activa/inactiva (F8)
     State.origX := 0               ; Posición original del ratón (X)
     State.origY := 0               ; Posición original del ratón (Y)
+    State.lastClickTime := Map()   ; Último tiempo de click para cada target
+    State.lastClickTime["target"] := 0
+    State.lastClickTime["target2"] := 0
 
     Log("INFO", "Init completado | Ventana del juego: " . Config.GameWindow.w . "x" . Config.GameWindow.h . " en (" . Config.GameWindow.x . "," . Config.GameWindow.y . ") | ScaleX=" . Config.Scale.x . ", ScaleY=" . Config.Scale.y)
 }
@@ -175,27 +184,37 @@ ToggleTarget(targetName, stateVar) {
 CheckPixelsLogic(targetName) {
     global Config, State
 
-    ; -- Leer color en el punto objetivo
-    targetColor := GetColorAtPoint(Config.Points[targetName])
+    ; -- Verificar cooldown
+    currentTime := A_TickCount
+    timeSinceLastClick := currentTime - State.lastClickTime[targetName]
+    
+    if (timeSinceLastClick < Config.Timings.cooldown) {
+        ; Aún en cooldown, no hacer nada
+        return
+    }
+
+    ; -- Buscar color blanco dentro del área rectangular
+    area := Config.Areas[targetName]
+    foundPixel := FindWhitePixelInArea(area)
 
     ; -- Si detecta color blanco, ejecutar Alt+Click
-    if (ColorCloseEnough(targetColor, Config.Colors.white, Config.Tolerance.primary)) {
-        Log("INFO", "Color blanco detectado en " . targetName . " -> Ejecutando Alt+Click")
+    if (foundPixel) {
+        Log("INFO", "Color blanco detectado en " . targetName . " en (" . foundPixel.x . ", " . foundPixel.y . ") -> Ejecutando Alt+Click")
         
         ; Guardar posición actual del ratón
         SaveMousePositionOnce()
         
-        ; Obtener coordenadas del objetivo
-        pt := Config.Points[targetName]
-        
         ; Realizar Alt+Click (mantener Alt presionado durante el click)
         Send("{Alt down}")
         Sleep(50)
-        Click(pt.x . " " . pt.y)
+        Click(foundPixel.x . " " . foundPixel.y)
         Sleep(50)
         Send("{Alt up}")
         
-        Log("INFO", "Alt+Click ejecutado en " . targetName . " (" . pt.x . ", " . pt.y . ")")
+        Log("INFO", "Alt+Click ejecutado en " . targetName . " (" . foundPixel.x . ", " . foundPixel.y . ")")
+        
+        ; Actualizar tiempo del último click
+        State.lastClickTime[targetName] := A_TickCount
         
         ; Restaurar posición del ratón
         Sleep(Config.Timings.afterClick)
@@ -229,11 +248,23 @@ RestoreMousePosition() {
     }
 }
 
-; Mueve el ratón a un punto con nombre.
-MoveMouseTo(pointName) {
+; Busca un píxel blanco dentro de un área rectangular.
+; Devuelve {x, y} si encuentra uno, o false si no.
+FindWhitePixelInArea(area) {
     global Config
-    pt := Config.Points[pointName]
-    MouseMove(pt.x, pt.y, 0)
+    
+    ; Iterar por cada píxel del área
+    Loop area.y2 - area.y1 + 1 {
+        y := area.y1 + A_Index - 1
+        Loop area.x2 - area.x1 + 1 {
+            x := area.x1 + A_Index - 1
+            color := GetColorAtXY(x, y)
+            if (ColorCloseEnough(color, Config.Colors.white, Config.Tolerance.primary)) {
+                return { x: x, y: y }
+            }
+        }
+    }
+    return false
 }
 
 ; Obtiene el color en un punto (objeto {x,y}). Devuelve 0xRRGGBB.
