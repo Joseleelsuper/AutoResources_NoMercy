@@ -7,7 +7,7 @@
 ;   @name: AutoResources_NoMercy.ahk
 ;   @description: Automatiza el farmeo de materiales Life Skill.
 ;   @author: Joseleelsuper
-;   @bpsr_guild: NoMercyII [52876]
+;   @bpsr_guild: HusaresAlados [1818]
 ;   @use
 ;       - Pulsa F8 para activar/desactivar la automatización de recursos Focused.
 ;       - Pulsa F9 para activar/desactivar la automatización.

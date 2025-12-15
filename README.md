@@ -17,4 +17,4 @@ Para ejecutar el fichero .ahk necesitarás tener instalado [AutoHotkey v2.0.19](
 
 ## Contacto
 
-Podéis encontrarme en Discord como Joseleelsuper, dentro de la [Guild NoMercy](https://discord.gg/qfJ8hRFVSQ).
+Podéis encontrarme en Discord como Joseleelsuper, dentro de la [Guild HusaresAlados](https://discord.gg/rY9mt4Gn8d).
