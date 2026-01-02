@@ -1,1 +1,1 @@
-(Get-FileHash -Algorithm SHA256 AutoResources_NoMercy.exe).Hash > hash.txt
+(Get-FileHash -Algorithm SHA256 AutoResources.exe).Hash > hash.txt

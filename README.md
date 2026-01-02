@@ -11,7 +11,7 @@ Lo único que tienes que hacer es ponerte en la zona de farmeo y:
 - F9 para activar/desactivar el script.
 - F10 para eliminar de memoria el script (El equivalente a cerrarlo con la X y tener que volver a abrirlo).
 
-Podéis descargar la última versión aquí: https://github.com/Joseleelsuper/AutoResources_NoMercy/releases/latest
+Podéis descargar la última versión aquí: https://github.com/Joseleelsuper/AutoResources/releases/latest
 
 Para ejecutar el fichero .ahk necesitarás tener instalado [AutoHotkey v2.0.19](https://github.com/AutoHotkey/AutoHotkey/releases/tag/v2.0.19)
 

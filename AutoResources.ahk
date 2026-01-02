@@ -4,7 +4,7 @@
 ; ==============================================
 ;  AutoResources
 ; ----------------------------------------------
-;   @name: AutoResources_NoMercy.ahk
+;   @name: AutoResources.ahk
 ;   @description: Automatiza el farmeo de materiales Life Skill.
 ;   @author: Joseleelsuper
 ;   @bpsr_guild: HusaresAlados [1818]
@@ -61,7 +61,7 @@ Init() {
     ; -- Flag para habilitar/deshabilitar logs (ANTES de DetectGameWindow)
     Config.LoggingEnabled := true
     ; -- Ruta de log
-    Config.LogPath := A_ScriptDir . "\AutoResources_NoMercy.log"
+    Config.LogPath := A_ScriptDir . "\AutoResources.log"
 
     ; -- Detectar ventana del juego y obtener dimensiones
     DetectGameWindow()
